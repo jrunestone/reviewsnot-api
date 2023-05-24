@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Serialization;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
@@ -14,8 +15,13 @@ public class Reviews
 
     private class Review
     {
+        [JsonPropertyName("id")]
         public string? Id { get; set; }
+        
+        [JsonPropertyName("rating")]
         public int Rating { get; set; }
+        
+        [JsonPropertyName("text")]
         public string? Text { get; set; }
     }
 
