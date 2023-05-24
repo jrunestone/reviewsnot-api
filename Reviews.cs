@@ -29,9 +29,11 @@ public class Reviews
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "reviews/{id?}")] HttpRequestData req, 
         string? id)
     {
+        _logger.LogInformation("Running reviews-api");
+        
         using var client = GetClient();
         var container = client.GetContainer("cosmos-reviewsnot", "reviews");
-
+        
         try
         {
             if (!string.IsNullOrEmpty(id))
@@ -54,12 +56,15 @@ public class Reviews
         }
         catch (CosmosException e)
         {
+            _logger.LogError(e, "Fatal error: {Error}", e.Message);
             return req.CreateResponse(e.StatusCode);
         }
     }
 
     private async Task<List<Review>> GetReviews(Container container)
     {
+        _logger.LogInformation("Fetching all reviews");
+
         var query = container
             .GetItemLinqQueryable<Review>();
         
@@ -77,11 +82,13 @@ public class Reviews
 
     private async Task<Review> GetReview(Container container, string id)
     {
+        _logger.LogInformation("Fetching single review: {Id}", id);
         return await container.ReadItemAsync<Review>(id, new PartitionKey(id));
     }
     
     private async Task<Review> GetRandomReview(Container container)
     {
+        _logger.LogInformation("Fetching random review");
         var allReviews = await GetReviews(container);
         var randomIndex = new Random().Next(0, allReviews.Count);
         return allReviews[randomIndex];
@@ -89,16 +96,18 @@ public class Reviews
     
     private CosmosClient GetClient()
     {
-        var connStr = Environment.GetEnvironmentVariable("COSMOS_CONNECTION_STRING"); 
-        var endpointStr = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT");
+        var connStr = Environment.GetEnvironmentVariable("COSMOS_CONNECTION_STRING", EnvironmentVariableTarget.Process); 
+        var endpointStr = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT", EnvironmentVariableTarget.Process);
 
         if (!string.IsNullOrEmpty(connStr))
         {
+            _logger.LogInformation("Using connection string");
             return new CosmosClient(connStr);
         }
         
         if (!string.IsNullOrEmpty(endpointStr))
         {
+            _logger.LogInformation("Using managed identity");
             return new CosmosClient(endpointStr, new DefaultAzureCredential());
         }
 
